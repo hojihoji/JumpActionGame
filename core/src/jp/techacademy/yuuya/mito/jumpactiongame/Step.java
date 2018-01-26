@@ -8,8 +8,8 @@ public class Step extends GameObject {
     public static final float STEP_HEIGHT = 0.5f;
 
     //タイプ（通常と動くタイプ）
-    public static final float STEP_TYPE_STATIC = 0;
-    public static final float STEP_TYPE_MOVING = 1;
+    public static final int STEP_TYPE_STATIC = 0;
+    public static final int STEP_TYPE_MOVING = 1;
 
     //状態（通常と消えた状態）
     public static final int STEP_STATE_NORMAL = 0;
@@ -39,7 +39,7 @@ public class Step extends GameObject {
                 velocity.x = -velocity.x;
                 setX(STEP_WIDTH/2);
             }
-            if(getX() > GameScreen.WORLD_WIDHT - STEP_WIDTH / 2){
+            if(getX() > GameScreen.WORLD_WIDTH - STEP_WIDTH / 2){
                 velocity.x = - velocity.x;
                 setX(GameScreen.WORLD_WIDTH - STEP_WIDTH / 2);
             }

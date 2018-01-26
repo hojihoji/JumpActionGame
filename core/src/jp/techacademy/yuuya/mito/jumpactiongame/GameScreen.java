@@ -107,19 +107,53 @@ public class GameScreen extends ScreenAdapter {
 
 
     //ステージを作成する
-    private void createStage(){
+    private void createStage() {
         //テクスチャの準備
         Texture stepTexture = new Texture("step.png");
         Texture starTexture = new Texture("star.png");
         Texture playerTexture = new Texture("uma.png");
-        Texture ufoTexture = new Texture("ugo.png");
+        Texture ufoTexture = new Texture("ufo.png");
 
         //StepとStarをゴールの高さまで配置していく
         float y = 0;
 
         float maxJumpHeight = Player.PLAYER_JUMP_VELOCITY * Player.PLAYER_JUMP_VELOCITY / (2 * -GRAVITY);
+        while (y < WORLD_HEIGHT - 5) {
+            int type = mRandom.nextFloat() > 0.8f ? Step.STEP_TYPE_MOVING : Step.STEP_TYPE_STATIC;
+            float x = mRandom.nextFloat() * (WORLD_WIDTH - Step.STEP_WIDTH);
 
+            Step step = new Step(type, stepTexture, 0, 0, 144, 36);
+            step.setPosition(x, y);
+            mSteps.add(step);
 
+            if (mRandom.nextFloat() > 0.6f) {
+                Star star = new Star(starTexture, 0, 0, 72, 72);
+                star.setPosition(step.getX() + mRandom.nextFloat(), step.getY() + Star.STAR_HEIGHT + mRandom.nextFloat() * 3);
+                mStars.add(star);
+            }
+
+            y += (maxJumpHeight - 0.5f);
+            y -= mRandom.nextFloat() * (maxJumpHeight / 3);
+        }
+
+        //Playerを配置
+        mPlayer = new Player(playerTexture, 0, 0, 72, 72);
+        mPlayer.setPosition(WORLD_WIDTH / 2 - Ufo.UFO_WIDTH / 2, y);
+
+        //ゴールのUFOを配置
+        mUfo = new Ufo(ufoTexture, 0, 0, 120, 74);
+        mUfo.setPosition(WORLD_WIDTH / 2 - Ufo.UFO_WIDTH / 2, y);
     }
 
+
+    private void update(float delta) {
+        switch (mGameState) {
+            case GAME_STATE_READY:
+                break;
+            case GAME_STATE_PLAYING:
+                break;
+            case GAME_STATE_GAMEOVER:
+                break;
+        }
+    }
 }

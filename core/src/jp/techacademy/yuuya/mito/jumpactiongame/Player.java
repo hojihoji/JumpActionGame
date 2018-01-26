@@ -25,7 +25,7 @@ public class Player extends GameObject {
 
     public void update(float delta, float accelX){
         //重力をプレイヤーの速度に加算し、速度から位置を計算する
-        velocity.add(0, GameScreen.GRAVITY = delta);
+        velocity.add(0, GameScreen.GRAVITY * delta);
         velocity.x = - accelX/10 * PLAYER_MOVE_VELOCITY;
         setPosition(getX() + velocity.x *delta,getY() + velocity.y * delta);
 
