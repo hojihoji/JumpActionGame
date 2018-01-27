@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import java.util.ArrayList;
@@ -19,6 +21,9 @@ public class GameScreen extends ScreenAdapter {
 
     static final float WORLD_WIDTH = 10;
     static final float WORLD_HEIGHT = 15 * 20;//20画面分登れば終了
+
+    static final float GUI_WIDTH = 320;
+    static final float GUI_HEIGHT = 480;
 
     static final int GAME_STATE_READY = 0;
     static final int GAME_STATE_PLAYING = 1;
@@ -39,7 +44,9 @@ public class GameScreen extends ScreenAdapter {
     Ufo mUfo;
     Player mPlayer;
 
+    float mHeightSoFar;
     int mGameState;
+    Vector3 mTouchPoint;
 
     public GameScreen(JumpActionGame game){
         mGame = game;
@@ -61,6 +68,7 @@ public class GameScreen extends ScreenAdapter {
         mSteps = new ArrayList<Step>();
         mStars = new ArrayList<Star>();
         mGameState = GAME_STATE_READY;
+        mTouchPoint = new Vector3();
 
         createStage();
 
@@ -149,11 +157,52 @@ public class GameScreen extends ScreenAdapter {
     private void update(float delta) {
         switch (mGameState) {
             case GAME_STATE_READY:
+                updateReady();
                 break;
             case GAME_STATE_PLAYING:
+                updatePlaying(delta);
                 break;
             case GAME_STATE_GAMEOVER:
+                updateGameOver();
                 break;
         }
     }
+
+    private void updateReady(){
+        if(Gdx.input.justTouched()){
+            mGameState = GAME_STATE_PLAYING;
+        }
+    }
+
+    private void updatePlaying(float delta){
+        float accel = 0;
+        if(Gdx.input.isTouched()){
+            mViewPort.unproject(mTouchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0));
+            Rectangle left = new Rectangle(0, 0, CAMERA_WIDTH / 2, CAMERA_HEIGHT);
+            Rectangle right = new Rectangle(CAMERA_WIDTH / 2 , 0, CAMERA_WIDTH/2, CAMERA_HEIGHT);
+            if(left.contains(mTouchPoint.x, mTouchPoint.y)){
+                accel = 5.0f;
+            }
+            if(right.contains(mTouchPoint.x,mTouchPoint.y)){
+                accel= - 5.0f;
+            }
+        }
+
+        //Step
+        for (int i = 0; i < mSteps.size(); i++) {
+            mSteps.get(i).update(delta);
+        }
+
+        //Player
+        if(mPlayer.getY() <= 0.5f){
+            mPlayer.hitStep();
+        }
+        mPlayer.update(delta, accel);
+        mHeightSoFar = Math.max(mPlayer.getY(), mHeightSoFar);
+    }
+
+    private void updateGameOver(){
+
+    }
+
 }
