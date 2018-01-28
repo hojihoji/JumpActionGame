@@ -109,7 +109,6 @@ public class GameScreen extends ScreenAdapter {
         //Player
         mPlayer.draw(mGame.batch);
 
-
         mGame.batch.end();
     }
 
@@ -146,7 +145,7 @@ public class GameScreen extends ScreenAdapter {
 
         //Playerを配置
         mPlayer = new Player(playerTexture, 0, 0, 72, 72);
-        mPlayer.setPosition(WORLD_WIDTH / 2 - Ufo.UFO_WIDTH / 2, y);
+        mPlayer.setPosition(WORLD_WIDTH / 2 - Ufo.UFO_WIDTH / 2, Step.STEP_HEIGHT);
 
         //ゴールのUFOを配置
         mUfo = new Ufo(ufoTexture, 0, 0, 120, 74);
@@ -154,6 +153,7 @@ public class GameScreen extends ScreenAdapter {
     }
 
 
+    //それぞれのオブジェクトの状態をアップデートする
     private void update(float delta) {
         switch (mGameState) {
             case GAME_STATE_READY:
@@ -174,17 +174,17 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-    private void updatePlaying(float delta){
+    private void updatePlaying(float delta) {
         float accel = 0;
-        if(Gdx.input.isTouched()){
+        if (Gdx.input.isTouched()) {
             mViewPort.unproject(mTouchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0));
             Rectangle left = new Rectangle(0, 0, CAMERA_WIDTH / 2, CAMERA_HEIGHT);
-            Rectangle right = new Rectangle(CAMERA_WIDTH / 2 , 0, CAMERA_WIDTH/2, CAMERA_HEIGHT);
-            if(left.contains(mTouchPoint.x, mTouchPoint.y)){
+            Rectangle right = new Rectangle(CAMERA_WIDTH / 2, 0, CAMERA_WIDTH / 2, CAMERA_HEIGHT);
+            if (left.contains(mTouchPoint.x, mTouchPoint.y)) {
                 accel = 5.0f;
             }
-            if(right.contains(mTouchPoint.x,mTouchPoint.y)){
-                accel= - 5.0f;
+            if (right.contains(mTouchPoint.x, mTouchPoint.y)) {
+                accel = -5.0f;
             }
         }
 
@@ -199,10 +199,58 @@ public class GameScreen extends ScreenAdapter {
         }
         mPlayer.update(delta, accel);
         mHeightSoFar = Math.max(mPlayer.getY(), mHeightSoFar);
+
+        //当たり判定を行う
+        checkCollison();
     }
 
     private void updateGameOver(){
 
+    }
+
+    private void checkCollison(){
+        //UFOとの当たり判定
+        if(mPlayer.getBoundingRectangle().overlaps(mUfo.getBoundingRectangle())){
+            mGameState = GAME_STATE_GAMEOVER;
+        }
+
+        //Starとの当たり判定
+        for(int i = 0; i < mStars.size(); i++){
+            Star star = mStars.get(i);
+
+            if(star.mState == star.STAR_NONE){
+                continue;
+            }
+
+            if(mPlayer.getBoundingRectangle().overlaps(star.getBoundingRectangle())){
+                star.get();
+                break;
+            }
+        }
+
+        //Stepとの当たり判定
+        //上昇中はあたり判定をしない
+        if(mPlayer.velocity.y > 0){
+            return;
+        }
+
+        for(int i = 0; i < mSteps.size(); i++){
+            Step step = mSteps.get(i);
+
+            if(step.mState == Step.STEP_STATE_VANISH){
+                continue;
+            }
+
+            if(mPlayer.getY() > step.getY()){
+                if(mPlayer.getBoundingRectangle().overlaps(step.getBoundingRectangle())){
+                    mPlayer.hitStep();
+                    if(mRandom.nextFloat() > 0.5f){
+                        step.vanish();
+                    }
+                    break;
+                }
+            }
+        }
     }
 
 }
