@@ -1,10 +1,12 @@
 package jp.techacademy.yuuya.mito.jumpactiongame;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -51,6 +53,12 @@ public class GameScreen extends ScreenAdapter {
     int mGameState;
     Vector3 mTouchPoint;
 
+    BitmapFont mFont;
+    int mScore;
+    int mHighScore;
+
+    Preferences mPrefs;
+
     public GameScreen(JumpActionGame game){
         mGame = game;
 
@@ -77,6 +85,13 @@ public class GameScreen extends ScreenAdapter {
         mStars = new ArrayList<Star>();
         mGameState = GAME_STATE_READY;
         mTouchPoint = new Vector3();
+        mFont = new BitmapFont(Gdx.files.internal("font.fnt"), Gdx.files.internal("font.png"), false);
+        mScore = 0;
+        mHighScore =0;
+
+        //ハイスコアをPreferenceから取得する
+        mPrefs = Gdx.app.getPreferences("jp.techacademy.yuuya.mito.jumpactiongame");
+        mHighScore = mPrefs.getInteger("HIGHSCORE", 0);
 
         createStage();
 
@@ -123,6 +138,14 @@ public class GameScreen extends ScreenAdapter {
         //Player
         mPlayer.draw(mGame.batch);
 
+        mGame.batch.end();
+
+        //スコア表示
+        mGuiCamera.update();
+        mGame.batch.setProjectionMatrix(mGuiCamera.combined);
+        mGame.batch.begin();
+        mFont.draw(mGame.batch, "High Score" + mHighScore, 16, GUI_HEIGHT - 15);
+        mFont.draw(mGame.batch, "Score" + mScore, 16, GUI_HEIGHT -35);
         mGame.batch.end();
     }
 
@@ -222,50 +245,64 @@ public class GameScreen extends ScreenAdapter {
 
         //当たり判定を行う
         checkCollision();
+
+        //ゲームオーバーか判断する
+        checkGameOver();
     }
 
     private void updateGameOver(){
+        if(Gdx.input.justTouched()){
+            mGame.setScreen(new ResultScreen(mGame, mScore));
+        }
 
     }
 
-    private void checkCollision(){
-        //UFOとの当たり判定
-        if(mPlayer.getBoundingRectangle().overlaps(mUfo.getBoundingRectangle())){
+    private void checkCollision() {
+        // UFO(ゴールとの当たり判定)
+        if (mPlayer.getBoundingRectangle().overlaps(mUfo.getBoundingRectangle())) {
+            Gdx.app.log("JumpActionGame", "CLEAR");
             mGameState = GAME_STATE_GAMEOVER;
             return;
         }
 
-        //Starとの当たり判定
-        for(int i = 0; i < mStars.size(); i++){
+        // Starとの当たり判定
+        for (int i = 0; i < mStars.size(); i++) {
             Star star = mStars.get(i);
 
-            if(star.mState == star.STAR_NONE){
+            if (star.mState == Star.STAR_NONE) {
                 continue;
             }
 
-            if(mPlayer.getBoundingRectangle().overlaps(star.getBoundingRectangle())){
+            if (mPlayer.getBoundingRectangle().overlaps(star.getBoundingRectangle())) {
                 star.get();
+                mScore++;
+                if(mScore > mHighScore){
+                    mHighScore = mScore;
+                    //ハイスコアをPreferenceに保存する
+                    mPrefs.putInteger("HIGHSCORE", mHighScore);
+                    mPrefs.flush();
+                }
                 break;
             }
         }
 
-        //Stepとの当たり判定
-        //上昇中はあたり判定をしない
-        if(mPlayer.velocity.y > 0){
+        // Stepとの当たり判定
+        // 上昇中はStepとの当たり判定を確認しない
+        if (mPlayer.velocity.y > 0) {
             return;
         }
 
-        for(int i = 0; i < mSteps.size(); i++){
+        for (int i = 0; i < mSteps.size(); i++) {
             Step step = mSteps.get(i);
 
-            if(step.mState == Step.STEP_STATE_VANISH){
+            if (step.mState == Step.STEP_STATE_VANISH) {
                 continue;
             }
 
-            if(mPlayer.getY() > step.getY()){
-                if(mPlayer.getBoundingRectangle().overlaps(step.getBoundingRectangle())){
+            if (mPlayer.getY() > step.getY()) {
+                if (mPlayer.getBoundingRectangle().overlaps(step.getBoundingRectangle())) {
                     mPlayer.hitStep();
-                    if(mRandom.nextFloat() > 0.5f){
+                    if (mRandom.nextFloat() > 0.5f) {
                         step.vanish();
                     }
                     break;
@@ -274,4 +311,10 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
+    private void checkGameOver(){
+        if(mHeightSoFar - CAMERA_HEIGHT / 2 > mPlayer.getY()){
+            Gdx.app.log("JumpActionGame", "GAMEOVER");
+            mGameState = GAME_STATE_GAMEOVER;
+        }
+    }
 }

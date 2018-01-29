@@ -53,7 +53,7 @@ public class Player extends GameObject {
 
     }
 
-    public void hitStep(){
+    public void hitStep () {
         velocity.y = PLAYER_JUMP_VELOCITY;
         mState = PLAYER_STATE_JUMP;
     }
