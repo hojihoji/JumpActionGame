@@ -36,7 +36,10 @@ public class GameScreen extends ScreenAdapter {
 
     Sprite mBg;
     OrthographicCamera mCamera;
+    OrthographicCamera mGuiCamera;
+
     FitViewport mViewPort;
+    FitViewport mGuiViewPort;
 
     Random mRandom;
     List<Step> mSteps;
@@ -63,6 +66,11 @@ public class GameScreen extends ScreenAdapter {
         mCamera.setToOrtho(false,CAMERA_WIDTH,CAMERA_HEIGHT);
         mViewPort = new FitViewport(CAMERA_WIDTH,CAMERA_HEIGHT,mCamera);
 
+        //GUI用のカメラを設定する
+        mGuiCamera = new OrthographicCamera(); // ←追加する
+        mGuiCamera.setToOrtho(false, GUI_WIDTH, GUI_HEIGHT);
+        mGuiViewPort = new FitViewport(GUI_WIDTH, GUI_HEIGHT, mGuiCamera);
+
         //メンバ変数の初期化
         mRandom = new Random();
         mSteps = new ArrayList<Step>();
@@ -79,8 +87,14 @@ public class GameScreen extends ScreenAdapter {
         //それぞれをアップデートする
         update(delta);
 
+        //描画する
         Gdx.gl.glClearColor(0,0,0,1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        //カメラの中心を超えたらカメラを上に移動させる。つまりキャラが画面の上半分には絶対に行かない
+        if(mPlayer.getY() > mCamera.position.y){
+            mCamera.position.y = mPlayer.getY();
+        }
 
         //カメラの座標をアップデート（計算）し、スプライトの表示に反映させる
         mCamera.update();
@@ -110,6 +124,12 @@ public class GameScreen extends ScreenAdapter {
         mPlayer.draw(mGame.batch);
 
         mGame.batch.end();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        mViewPort.update(width, height);
+        mGuiViewPort.update(width, height);
     }
 
 
@@ -145,7 +165,7 @@ public class GameScreen extends ScreenAdapter {
 
         //Playerを配置
         mPlayer = new Player(playerTexture, 0, 0, 72, 72);
-        mPlayer.setPosition(WORLD_WIDTH / 2 - Ufo.UFO_WIDTH / 2, Step.STEP_HEIGHT);
+        mPlayer.setPosition(WORLD_WIDTH / 2 - mPlayer.getWidth() / 2, Step.STEP_HEIGHT);
 
         //ゴールのUFOを配置
         mUfo = new Ufo(ufoTexture, 0, 0, 120, 74);
@@ -177,9 +197,9 @@ public class GameScreen extends ScreenAdapter {
     private void updatePlaying(float delta) {
         float accel = 0;
         if (Gdx.input.isTouched()) {
-            mViewPort.unproject(mTouchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0));
-            Rectangle left = new Rectangle(0, 0, CAMERA_WIDTH / 2, CAMERA_HEIGHT);
-            Rectangle right = new Rectangle(CAMERA_WIDTH / 2, 0, CAMERA_WIDTH / 2, CAMERA_HEIGHT);
+            mGuiViewPort.unproject(mTouchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0));
+            Rectangle left = new Rectangle(0, 0, GUI_WIDTH / 2, GUI_HEIGHT);
+            Rectangle right = new Rectangle(GUI_WIDTH / 2, 0, GUI_WIDTH / 2, GUI_HEIGHT);
             if (left.contains(mTouchPoint.x, mTouchPoint.y)) {
                 accel = 5.0f;
             }
@@ -201,17 +221,18 @@ public class GameScreen extends ScreenAdapter {
         mHeightSoFar = Math.max(mPlayer.getY(), mHeightSoFar);
 
         //当たり判定を行う
-        checkCollison();
+        checkCollision();
     }
 
     private void updateGameOver(){
 
     }
 
-    private void checkCollison(){
+    private void checkCollision(){
         //UFOとの当たり判定
         if(mPlayer.getBoundingRectangle().overlaps(mUfo.getBoundingRectangle())){
             mGameState = GAME_STATE_GAMEOVER;
+            return;
         }
 
         //Starとの当たり判定
